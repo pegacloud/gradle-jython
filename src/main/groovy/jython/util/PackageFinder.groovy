@@ -42,8 +42,9 @@ class PackageFinder {
         String dir = "$PYPI_BASE/${path}"
         log.info "inferred path is: $dir"
 
-        String text=dir.toURL().text
+        String textOrg=dir.toURL().text
 
+        String text=fixMalformedMetaTags(textOrg)
         XmlSlurper parser = new XmlSlurper()
         parser.setFeature('http://apache.org/xml/features/disallow-doctype-decl', false)
         GPathResult doc = parser.parseText(text)
@@ -66,5 +67,26 @@ class PackageFinder {
     static URL findPackageArchive(JythonPackage jythonPackage) {
         findPackageArchive(jythonPackage.name, jythonPackage.version)
 
+    }
+
+    static String fixMalformedMetaTags(html) {
+
+        String replaceStr = '/>'
+        List badLines = []
+        String[] lines = html.split( '\n' )
+        if (lines.size() > 0) {
+            for (String l: lines) {
+                if (l.contains('<meta') && !l.endsWith(replaceStr)) {
+                    badLines.add(l)
+                }
+            }
+        }
+
+        String fixedHtml
+        for (String badLine : badLines) {
+            String fixedLine = badLine.replace ( '>', replaceStr )
+            fixedHtml = html.replace ( badLine, fixedLine )
+        }
+        return fixedHtml
     }
 }
